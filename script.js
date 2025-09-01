@@ -1,16 +1,97 @@
 // Global variables
-let customers = JSON.parse(localStorage.getItem('customers')) || [];
-let bills = JSON.parse(localStorage.getItem('bills')) || [];
-let payments = JSON.parse(localStorage.getItem('payments')) || [];
+let customers = [];
+let bills = [];
+let payments = [];
 let currentBillId = 1;
+let isDatabaseAvailable = false;
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeApp();
+    await initializeData();
     loadCustomers();
     loadBills();
     updateCreditsSummary();
 });
+
+// WhatsApp Integration Function
+function openWhatsApp() {
+    const phoneNumber = '9779810296797'; // Remove the + and spaces
+    const message = 'Hello! I would like to know more about your sticker services.';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    // Open WhatsApp in a new tab
+    window.open(whatsappUrl, '_blank');
+}
+
+// Initialize data from database or localStorage
+async function initializeData() {
+    try {
+        // Check if database service is available
+        if (window.dbService) {
+            isDatabaseAvailable = await window.dbService.isDatabaseAvailable();
+            if (isDatabaseAvailable) {
+                const data = await window.dbService.loadAllData();
+                customers = data.customers;
+                bills = data.bills;
+                payments = data.payments;
+                console.log('Data loaded from database');
+                updateSyncStatus('connected', 'Database connected - Data synced across devices');
+            } else {
+                // Fallback to localStorage
+                customers = JSON.parse(localStorage.getItem('customers')) || [];
+                bills = JSON.parse(localStorage.getItem('bills')) || [];
+                payments = JSON.parse(localStorage.getItem('payments')) || [];
+                console.log('Data loaded from localStorage (fallback)');
+                updateSyncStatus('offline', 'Using local storage - Data not synced across devices');
+            }
+        } else {
+            // Fallback to localStorage if database service not available
+            customers = JSON.parse(localStorage.getItem('customers')) || [];
+            bills = JSON.parse(localStorage.getItem('bills')) || [];
+            payments = JSON.parse(localStorage.getItem('payments')) || [];
+            console.log('Database service not available, using localStorage');
+            updateSyncStatus('offline', 'Database service not available - Using local storage');
+        }
+    } catch (error) {
+        console.error('Error initializing data:', error);
+        // Fallback to localStorage
+        customers = JSON.parse(localStorage.getItem('customers')) || [];
+        bills = JSON.parse(localStorage.getItem('bills')) || [];
+        payments = JSON.parse(localStorage.getItem('payments')) || [];
+        updateSyncStatus('error', 'Error connecting to database - Using local storage');
+    }
+}
+
+// Update sync status display
+function updateSyncStatus(status, message) {
+    const syncStatusText = document.getElementById('syncStatusText');
+    if (syncStatusText) {
+        let icon = '';
+        let color = '';
+        
+        switch(status) {
+            case 'connected':
+                icon = '<i class="fas fa-check-circle" style="color: #28a745;"></i>';
+                color = '#28a745';
+                break;
+            case 'offline':
+                icon = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>';
+                color = '#ffc107';
+                break;
+            case 'error':
+                icon = '<i class="fas fa-times-circle" style="color: #dc3545;"></i>';
+                color = '#dc3545';
+                break;
+            default:
+                icon = '<i class="fas fa-question-circle" style="color: #6c757d;"></i>';
+                color = '#6c757d';
+        }
+        
+        syncStatusText.innerHTML = `${icon} ${message}`;
+        syncStatusText.style.color = color;
+    }
+}
 
 // Initialize application
 function initializeApp() {
@@ -44,7 +125,7 @@ function initializeApp() {
 }
 
 // Customer Management Functions
-function addCustomer() {
+async function addCustomer() {
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
     const vehicle = document.getElementById('customerVehicle').value.trim();
@@ -71,14 +152,14 @@ function addCustomer() {
     };
 
     customers.push(newCustomer);
-    saveCustomers();
+    await saveCustomers();
     loadCustomers();
     closeAddCustomerModal();
     
     // Clear form
     document.getElementById('addCustomerForm').reset();
     
-    alert('Customer added successfully!');
+    showNotification('Customer added successfully!', 'success');
 }
 
 function loadCustomers() {
@@ -114,6 +195,9 @@ function createCustomerCard(customer) {
         <div class="customer-header">
             <div class="customer-name">${customer.name}</div>
             <div class="customer-actions">
+                <button class="btn btn-primary" onclick="openEditCustomerModal(${customer.id})" title="Edit Customer">
+                    <i class="fas fa-edit"></i>
+                </button>
                 <button class="btn btn-info" onclick="createBillForCustomer(${customer.id})">
                     <i class="fas fa-receipt"></i> Bill
                 </button>
@@ -814,6 +898,112 @@ function closeAddCustomerModal() {
     document.getElementById('addCustomerModal').style.display = 'none';
 }
 
+// Edit Customer Modal Functions
+function openEditCustomerModal(customerId) {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) {
+        alert('Customer not found');
+        return;
+    }
+
+    const editModal = document.createElement('div');
+    editModal.className = 'modal';
+    editModal.id = 'editCustomerModal';
+    editModal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Customer - ${customer.name}</h3>
+                <span class="close" onclick="closeEditCustomerModal()">&times;</span>
+            </div>
+            <form id="editCustomerForm" style="padding: 30px;">
+                <div class="form-group">
+                    <label for="editCustomerName">Customer Name:</label>
+                    <input type="text" id="editCustomerName" value="${customer.name}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCustomerPhone">Phone Number:</label>
+                    <input type="text" id="editCustomerPhone" value="${customer.phone}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCustomerVehicle">Vehicle:</label>
+                    <input type="text" id="editCustomerVehicle" value="${customer.vehicle}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCustomerCredit">Outstanding Credit:</label>
+                    <input type="number" id="editCustomerCredit" value="${customer.credit}" step="0.01" min="0">
+                    <small style="color: #666; font-size: 0.9em;">Note: Only modify this if you need to adjust the credit amount manually</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditCustomerModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(editModal);
+    editModal.style.display = 'block';
+    
+    // Add form submission handler
+    document.getElementById('editCustomerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateCustomer(customerId);
+    });
+}
+
+function closeEditCustomerModal() {
+    const editModal = document.getElementById('editCustomerModal');
+    if (editModal) {
+        editModal.remove();
+    }
+}
+
+async function updateCustomer(customerId) {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) {
+        alert('Customer not found');
+        return;
+    }
+
+    const name = document.getElementById('editCustomerName').value.trim();
+    const phone = document.getElementById('editCustomerPhone').value.trim();
+    const vehicle = document.getElementById('editCustomerVehicle').value.trim();
+    const credit = parseFloat(document.getElementById('editCustomerCredit').value) || 0;
+
+    if (!name || !phone || !vehicle) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Check if phone number is being changed and if it already exists
+    if (phone !== customer.phone) {
+        const existingCustomer = customers.find(c => c.phone === phone && c.id !== customerId);
+        if (existingCustomer) {
+            alert('A customer with this phone number already exists');
+            return;
+        }
+    }
+
+    // Update customer data
+    customer.name = name;
+    customer.phone = phone;
+    customer.vehicle = vehicle;
+    customer.credit = credit;
+
+    // Save to database/localStorage
+    await saveCustomers();
+    
+    // Reload the customer list
+    loadCustomers();
+    
+    // Close modal
+    closeEditCustomerModal();
+    
+    showNotification('Customer updated successfully!', 'success');
+}
+
 function openNewBillModal() {
     document.getElementById('newBillModal').style.display = 'block';
     // Load customers in modal dropdown
@@ -843,6 +1033,8 @@ window.onclick = function(event) {
     const addCustomerModal = document.getElementById('addCustomerModal');
     const newBillModal = document.getElementById('newBillModal');
     const paymentModal = document.getElementById('paymentModal');
+    const editCustomerModal = document.getElementById('editCustomerModal');
+    const syncModal = document.getElementById('syncModal');
     
     if (event.target === addCustomerModal) {
         closeAddCustomerModal();
@@ -853,23 +1045,65 @@ window.onclick = function(event) {
     if (event.target === paymentModal) {
         closePaymentModal();
     }
-}
-
-// Data Persistence Functions
-function saveCustomers() {
-    localStorage.setItem('customers', JSON.stringify(customers));
-}
-
-function saveBills() {
-    localStorage.setItem('bills', JSON.stringify(bills));
-    // Update current bill ID
-    if (bills.length > 0) {
-        currentBillId = Math.max(...bills.map(b => b.id)) + 1;
+    if (event.target === editCustomerModal) {
+        closeEditCustomerModal();
+    }
+    if (event.target === syncModal) {
+        closeSyncModal();
     }
 }
 
-function savePayments() {
-    localStorage.setItem('payments', JSON.stringify(payments));
+// Data Persistence Functions
+async function saveCustomers() {
+    try {
+        if (isDatabaseAvailable && window.dbService) {
+            // Save to database
+            await window.dbService.saveCustomersToDB(customers);
+        }
+        // Always save to localStorage as backup
+        localStorage.setItem('customers', JSON.stringify(customers));
+    } catch (error) {
+        console.error('Error saving customers:', error);
+        // Fallback to localStorage only
+        localStorage.setItem('customers', JSON.stringify(customers));
+    }
+}
+
+async function saveBills() {
+    try {
+        if (isDatabaseAvailable && window.dbService) {
+            // Save to database
+            await window.dbService.saveBillsToDB(bills);
+        }
+        // Always save to localStorage as backup
+        localStorage.setItem('bills', JSON.stringify(bills));
+        // Update current bill ID
+        if (bills.length > 0) {
+            currentBillId = Math.max(...bills.map(b => b.id)) + 1;
+        }
+    } catch (error) {
+        console.error('Error saving bills:', error);
+        // Fallback to localStorage only
+        localStorage.setItem('bills', JSON.stringify(bills));
+        if (bills.length > 0) {
+            currentBillId = Math.max(...bills.map(b => b.id)) + 1;
+        }
+    }
+}
+
+async function savePayments() {
+    try {
+        if (isDatabaseAvailable && window.dbService) {
+            // Save to database
+            await window.dbService.savePaymentsToDB(payments);
+        }
+        // Always save to localStorage as backup
+        localStorage.setItem('payments', JSON.stringify(payments));
+    } catch (error) {
+        console.error('Error saving payments:', error);
+        // Fallback to localStorage only
+        localStorage.setItem('payments', JSON.stringify(payments));
+    }
 }
 
 // Utility Functions
@@ -1532,7 +1766,8 @@ function backupData() {
         bills: bills,
         payments: payments,
         businessInfo: JSON.parse(localStorage.getItem('businessInfo')),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: '1.0'
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1546,6 +1781,190 @@ function backupData() {
     URL.revokeObjectURL(url);
 
     showNotification('Data backup completed successfully!', 'success');
+}
+
+// Enhanced data sync functions for cross-device synchronization
+function syncDataToOtherDevices() {
+    if (!isDatabaseAvailable) {
+        showSyncInstructions();
+        return;
+    }
+    
+    showNotification('Data is automatically synced across devices via database!', 'success');
+}
+
+function showSyncInstructions() {
+    const syncModal = document.createElement('div');
+    syncModal.className = 'modal';
+    syncModal.id = 'syncModal';
+    syncModal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Sync Data Across Devices</h3>
+                <span class="close" onclick="closeSyncModal()">&times;</span>
+            </div>
+            <div style="padding: 30px;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="color: #667eea; margin-top: 0;">Current Status: Using Local Storage</h4>
+                    <p>Your data is currently stored locally on this device only. To sync across devices, you have two options:</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>Option 1: Manual Export/Import (Quick Solution)</h4>
+                    <p>Export data from one device and import it on another:</p>
+                    <div style="display: flex; gap: 10px; margin: 15px 0;">
+                        <button class="btn btn-primary" onclick="backupData(); closeSyncModal();">
+                            <i class="fas fa-download"></i> Export Data
+                        </button>
+                        <button class="btn btn-success" onclick="restoreData(); closeSyncModal();">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>Option 2: Set Up Database (Recommended)</h4>
+                    <p>For automatic sync across all devices, set up a database:</p>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <p><strong>Steps:</strong></p>
+                        <ol style="margin: 10px 0; padding-left: 20px;">
+                            <li>Follow the setup guide in DATABASE_SETUP.md</li>
+                            <li>Create a free Supabase account</li>
+                            <li>Deploy to Vercel with environment variables</li>
+                            <li>Data will automatically sync across all devices</li>
+                        </ol>
+                    </div>
+                    <button class="btn btn-info" onclick="showDatabaseSetupGuide(); closeSyncModal();">
+                        <i class="fas fa-database"></i> View Setup Guide
+                    </button>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <p><strong>Note:</strong> The manual export/import method works well for occasional sync, but setting up the database provides real-time synchronization across all devices.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(syncModal);
+    syncModal.style.display = 'block';
+}
+
+function closeSyncModal() {
+    const syncModal = document.getElementById('syncModal');
+    if (syncModal) {
+        syncModal.remove();
+    }
+}
+
+function showDatabaseSetupGuide() {
+    const guideWindow = window.open('', '_blank');
+    guideWindow.document.write(`
+        <html>
+        <head>
+            <title>Database Setup Guide - Esmaria Sticker House</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                .step { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; border-left: 4px solid #667eea; }
+                .code { background: #f1f3f4; padding: 15px; border-radius: 5px; font-family: monospace; margin: 10px 0; }
+                .warning { background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 15px 0; }
+                .success { background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Database Setup Guide</h1>
+                <p>Esmaria Sticker House - Cross-Device Data Sync</p>
+            </div>
+            
+            <div class="step">
+                <h2>Step 1: Create Supabase Account</h2>
+                <p>1. Go to <a href="https://supabase.com" target="_blank">https://supabase.com</a></p>
+                <p>2. Click "Start your project" and sign up with GitHub</p>
+                <p>3. Create a new project</p>
+                <p>4. Note down your project URL and anon key</p>
+            </div>
+            
+            <div class="step">
+                <h2>Step 2: Set Up Database Tables</h2>
+                <p>In your Supabase dashboard, go to the SQL Editor and run these commands:</p>
+                
+                <h3>Customers Table:</h3>
+                <div class="code">
+CREATE TABLE customers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    vehicle VARCHAR(255) NOT NULL,
+    credit DECIMAL(10,2) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+                </div>
+                
+                <h3>Bills Table:</h3>
+                <div class="code">
+CREATE TABLE bills (
+    id BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT REFERENCES customers(id),
+    products JSONB NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    discount DECIMAL(10,2) DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    paid_amount DECIMAL(10,2) DEFAULT 0,
+    credit DECIMAL(10,2) DEFAULT 0,
+    date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+                </div>
+                
+                <h3>Payments Table:</h3>
+                <div class="code">
+CREATE TABLE payments (
+    id BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT REFERENCES customers(id),
+    amount DECIMAL(10,2) NOT NULL,
+    date DATE NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+                </div>
+            </div>
+            
+            <div class="step">
+                <h2>Step 3: Deploy to Vercel</h2>
+                <p>1. Install Vercel CLI: <code>npm install -g vercel</code></p>
+                <p>2. Deploy your project: <code>vercel --prod</code></p>
+                <p>3. Add environment variables in Vercel dashboard:</p>
+                <div class="code">
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+                </div>
+            </div>
+            
+            <div class="success">
+                <h3>✅ Benefits of Database Setup:</h3>
+                <ul>
+                    <li>Real-time data sync across all devices</li>
+                    <li>Automatic backup and data safety</li>
+                    <li>No manual export/import needed</li>
+                    <li>Access from anywhere with internet</li>
+                </ul>
+            </div>
+            
+            <div class="warning">
+                <h3>⚠️ Important Notes:</h3>
+                <ul>
+                    <li>Both Supabase and Vercel offer free tiers</li>
+                    <li>Your data will be automatically backed up</li>
+                    <li>The app will work offline and sync when online</li>
+                    <li>If database is unavailable, it falls back to local storage</li>
+                </ul>
+            </div>
+        </body>
+        </html>
+    `);
+    guideWindow.document.close();
 }
 
 function restoreData() {

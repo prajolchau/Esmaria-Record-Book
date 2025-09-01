@@ -22,6 +22,14 @@
                     <span>+ 977 9810296797</span>
                 </div>
                 <div class="contact-item">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>+ 977 9810296797</span>
+                    <button class="whatsapp-btn" onclick="openWhatsApp()" title="Chat on WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                        Chat Now
+                    </button>
+                </div>
+                <div class="contact-item">
                     <i class="fas fa-envelope"></i>
                     <span>esmaria.stickerhouse0@gmail.com</span>
                 </div>
@@ -248,6 +256,27 @@
                     <h2><i class="fas fa-cog"></i> System Settings</h2>
                 </div>
 
+                <!-- Data Sync Status -->
+                <div class="sync-status-card" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #667eea;">
+                    <h3 style="margin-top: 0; color: #667eea;">
+                        <i class="fas fa-sync-alt"></i> Data Synchronization
+                    </h3>
+                    <div id="syncStatus" style="margin: 10px 0;">
+                        <span id="syncStatusText">Checking connection...</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="syncDataToOtherDevices()">
+                            <i class="fas fa-sync"></i> Sync Data
+                        </button>
+                        <button class="btn btn-success" onclick="backupData()">
+                            <i class="fas fa-download"></i> Export Data
+                        </button>
+                        <button class="btn btn-info" onclick="restoreData()">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                    </div>
+                </div>
+
                 <div class="settings-container">
                     <div class="settings-grid">
                         <div class="settings-card">
@@ -412,6 +441,7 @@
         </div>
     </div>
 
+    <script src="js/database.js"></script>
     <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>

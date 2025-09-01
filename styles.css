@@ -230,6 +230,38 @@ body::before {
     font-size: 0.95rem;
 }
 
+/* WhatsApp Button Styling */
+.whatsapp-btn {
+    background: #25D366;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-btn:hover {
+    background: #128C7E;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-btn:active {
+    transform: translateY(0);
+}
+
+.whatsapp-btn i {
+    font-size: 1rem;
+}
+
 /* Navigation Styles */
 .nav {
     display: flex;
@@ -1235,6 +1267,12 @@ body::before {
         font-size: 0.9rem;
     }
     
+    .whatsapp-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        margin-left: 8px;
+    }
+    
     .recent-bills-header {
         flex-direction: column;
         align-items: stretch;
@@ -1314,6 +1352,12 @@ body::before {
     .contact-item {
         padding: 5px 10px;
         font-size: 0.85rem;
+    }
+    
+    .whatsapp-btn {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+        margin-left: 5px;
     }
     
     .section-header h2 {
@@ -2431,6 +2475,15 @@ body::before {
 
 .theme-dark .contact-info {
     color: #ffffff !important;
+}
+
+.theme-dark .whatsapp-btn {
+    background: #25D366 !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .whatsapp-btn:hover {
+    background: #128C7E !important;
 }
 
 .theme-dark .contact-item {
