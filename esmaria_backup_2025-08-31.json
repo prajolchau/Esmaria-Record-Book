@@ -1,0 +1,81 @@
+{
+  "customers": [
+    {
+      "id": 1756622641865,
+      "name": "prem kumar chaudhary",
+      "phone": "9810296797",
+      "vehicle": "7777",
+      "credit": 500,
+      "createdAt": "2025-08-31T06:44:01.865Z"
+    },
+    {
+      "id": 1756622659740,
+      "name": "prajwal",
+      "phone": "9840594704",
+      "vehicle": "4016",
+      "credit": 1000,
+      "createdAt": "2025-08-31T06:44:19.740Z"
+    }
+  ],
+  "bills": [
+    {
+      "id": 1,
+      "customerId": 1756622641865,
+      "products": [
+        {
+          "name": "ganesh",
+          "quantity": 1,
+          "price": 500,
+          "total": 500
+        },
+        {
+          "name": "back",
+          "quantity": 1,
+          "price": 1000,
+          "total": 1000
+        }
+      ],
+      "subtotal": 1500,
+      "discount": 0,
+      "total": 1500,
+      "paidAmount": 1000,
+      "credit": 500,
+      "date": "2025-08-31T06:46:14.083Z"
+    },
+    {
+      "id": 2,
+      "customerId": 1756622659740,
+      "products": [
+        {
+          "name": "shdfjsah",
+          "quantity": 1,
+          "price": 5000,
+          "total": 5000
+        }
+      ],
+      "subtotal": 5000,
+      "discount": 0,
+      "total": 5000,
+      "paidAmount": 0,
+      "credit": 5000,
+      "date": "2025-08-31T06:47:06.850Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": 1756622858237,
+      "customerId": 1756622659740,
+      "amount": 4000,
+      "date": "2025-08-31",
+      "notes": "ESEWA CASH",
+      "createdAt": "2025-08-31T06:47:38.237Z"
+    }
+  ],
+  "businessInfo": {
+    "name": "Esmaria Sticker House",
+    "address": "imadol, lalitpur",
+    "phone": "9810296797",
+    "email": "esmaria.stickerhouse0@gmail.com"
+  },
+  "timestamp": "2025-08-31T06:49:59.548Z"
+}
